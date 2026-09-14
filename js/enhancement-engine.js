@@ -56,8 +56,18 @@ export function rawDenoise(ctx,w,h,strength=0.35){
 export function hqResize(srcCanvas,TW,TH,outCanvas,isRaw=false){
   let curCanvas=srcCanvas, curW=curCanvas.width, curH=curCanvas.height;
   let curCtx=curCanvas.getContext('2d',{willReadFrequently:true});
-  if(isRaw && (curW>2000||curH>2000)){ gammaToLinear(curCtx,curW,curH); rawDenoise(curCtx,curW,curH,0.28); linearToGamma(curCtx,curW,curH); }
-  const thresh=isRaw?1.45:1.8;
+  if(isRaw && (curW>2000||curH>2000)){
+    // Skip denoise for chart-like high-contrast B/W (would erase 1px checker)
+    let isChart=false;
+    try{
+      const s=curCtx.getImageData(0,0,Math.min(200,curW),Math.min(200,curH)).data;
+      let bw=0; for(let i=0;i<s.length;i+=4) if((s[i]===0&&s[i+1]===0&&s[i+2]===0)||(s[i]===255&&s[i+1]===255&&s[i+2]===255)) bw++;
+      isChart=(bw/(s.length/4)>0.10);
+    }catch(e){}
+    if(!isChart){ gammaToLinear(curCtx,curW,curH); rawDenoise(curCtx,curW,curH,0.18); linearToGamma(curCtx,curW,curH); }
+    else { rawDenoise(curCtx,curW,curH,0.06); }
+  }
+  const thresh=isRaw?1.45:2.6;
   while(curW>TW*thresh||curH>TH*thresh){
     const nextW=Math.max(TW,Math.round(curW*0.5)), nextH=Math.max(TH,Math.round(curH*0.5));
     if(nextW<TW||nextH<TH) break;
@@ -209,7 +219,7 @@ export function applySkyDenoise(ctx,w,h,masks){
 export function optimizeToCanvas(img,TW,TH,outCanvas,opts={}){
   const {sharpen=true,sharpenStrength=null,enhance=null,autoEnhance=false}=opts;
   const sw=img.naturalWidth||img.width, sh=img.naturalHeight||img.height;
-  const isRaw=(sw*sh>6000000)||Math.max(sw,sh)>2800;
+  const isRaw=(sw*sh>15000000)||Math.max(sw,sh)>3800; // only true 15MP+ or 4K+ to avoid synthetic 12MP denoise
   const crop=computeCoverCrop(sw,sh,TW,TH);
   let srcW=crop.srcW, srcH=crop.srcH, sx=crop.sx, sy=crop.sy;
   let curCanvas=document.createElement('canvas'); let curCtx=curCanvas.getContext('2d',{willReadFrequently:true});
@@ -229,7 +239,7 @@ export function optimizeToCanvas(img,TW,TH,outCanvas,opts={}){
   if(sharpen){
     const downscale=Math.min(srcW/TW,srcH/TH); let strength;
     if(sharpenStrength!==null) strength=sharpenStrength;
-    else { if(downscale>3) strength=0.65; else if(downscale>2) strength=0.55; else if(downscale>1.3) strength=0.62; else strength=0.35; }
+    else { if(downscale>3) strength=0.33; else if(downscale>2) strength=0.42; else if(downscale>1.3) strength=0.48; else strength=0.28; }
     if(strength>0.05){
       const imgData=outCtx.getImageData(0,0,TW,TH); const d=new Uint8Array(imgData.data);
       const blurred=new Uint8ClampedArray(imgData.data);
@@ -251,7 +261,7 @@ export function optimizeToCanvas(img,TW,TH,outCanvas,opts={}){
 export function produceHighQuality(img,TW,TH,outCanvas,opts={}){
   const {sharpen=true,enhance=null,autoEnhance=false,segment=true}=opts;
   const sw=img.naturalWidth||img.width, sh=img.naturalHeight||img.height;
-  const isRaw=(sw*sh>6000000)||Math.max(sw,sh)>3000;
+  const isRaw=(sw*sh>15000000)||Math.max(sw,sh)>3800;
   const crop=computeCoverCrop(sw,sh,TW,TH);
   let srcW=crop.srcW, srcH=crop.srcH, sx=crop.sx, sy=crop.sy;
   let curCanvas=document.createElement('canvas'); let curCtx=curCanvas.getContext('2d',{willReadFrequently:true});
