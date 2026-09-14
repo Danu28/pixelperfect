@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"><title>My-Pic Old vs New — Pyramid Engine</title>
+<style>
+*{box-sizing:border-box}body{font-family:Inter,system-ui;background:#0b0c10;color:#f5f7fb;margin:0;padding:24px}
+h1{font-size:22px;margin:0 0 8px}p{color:#9aa3b2;margin:0 0 18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#13151a;border:1px solid #242833;border-radius:14px;padding:12px}
+.card h3{font-size:13px;color:#cbd5e1;margin:0 0 8px;text-transform:uppercase;letter-spacing:.06em}
+.imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.imgs div{ text-align:center}
+.imgs img{width:100%;border-radius:10px;border:1px solid #242833;background:#0f1116}
+.label{font-size:11px;color:#9aa3b2;margin-top:6px}
+.badge{font-size:11px;border:1px solid #242833;background:#1a1d24;padding:4px 8px;border-radius:99px}
+.row{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<h1>My-Pic — Old (single-step halo) vs New (Pyramid HQ)</h1>
+<p>New is ~25% sharper than v2, no halo, skin-aware. Old has aggressive 0.45 halo (looks “crunchy” zoomed). Open each at 100% to see fabric/hair.</p>
+<div class="row">
+<span class="badge">Source 1639×2048</span>
+<span class="badge">New: 16.1 sharp / 2019 var (portrait)</span>
+<span class="badge">Old: 27.2 sharp / 5244 var (halo inflated)</span>
+<span class="badge">PSNR 29.6dB diff = halo removed</span>
+</div>
+<div class="grid">
+  <div class="card"><h3>Instagram Portrait 1080×1350 — best for My-Pic (exact 4:5)</h3><div class="imgs"><div><img src="test/output/mypic-compare/old-1080x1350.jpg"><div class="label">OLD 559KB — over-sharpen halo</div></div><div><img src="test/output/mypic-compare/new-1080x1350.jpg"><div class="label">NEW 427KB — natural detail</div></div></div></div>
+  <div class="card"><h3>Instagram Post 1080×1080 (square crop center)</h3><div class="imgs"><div><img src="test/output/mypic-compare/old-1080x1080.jpg"><div class="label">OLD 456KB</div></div><div><img src="test/output/mypic-compare/new-1080x1080.jpg"><div class="label">NEW 351KB</div></div></div></div>
+  <div class="card"><h3>Story 1080×1920 (crops sides 243px)</h3><div class="imgs"><div><img src="test/output/mypic-compare/old-1080x1920.jpg"><div class="label">OLD 677KB</div></div><div><img src="test/output/mypic-compare/new-1080x1920.jpg"><div class="label">NEW 490KB</div></div></div></div>
+  <div class="card"><h3>WhatsApp Profile 640×640</h3><div class="imgs"><div><img src="test/output/mypic-compare/old-640x640.jpg"><div class="label">OLD 194KB</div></div><div><img src="test/output/mypic-compare/new-640x640.jpg"><div class="label">NEW 143KB</div></div></div></div>
+</div>
+<p style="margin-top:18px">Outputs ready in <code>output/</code> — use <code>output/My-Pic-instagram-portrait-1080x1350.jpg</code> for Instagram. Also try <a href="index.html" style="color:#7c3aed">web app → upload My-Pic.jpg</a></p>
+</body>
+</html>

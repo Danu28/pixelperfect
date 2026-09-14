@@ -42,6 +42,20 @@ const els = {
   downloadBtn: document.getElementById('downloadBtn'),
   newBtn: document.getElementById('newBtn'),
   workCanvas: document.getElementById('workCanvas'),
+  autoEnhance: document.getElementById('autoEnhance'),
+  bright: document.getElementById('bright'),
+  contrast: document.getElementById('contrast'),
+  highlights: document.getElementById('highlights'),
+  shadows: document.getElementById('shadows'),
+  warmth: document.getElementById('warmth'),
+  vibrance: document.getElementById('vibrance'),
+  valBright: document.getElementById('valBright'),
+  valContrast: document.getElementById('valContrast'),
+  valHighlights: document.getElementById('valHighlights'),
+  valShadows: document.getElementById('valShadows'),
+  valWarmth: document.getElementById('valWarmth'),
+  valVibrance: document.getElementById('valVibrance'),
+  resetEnhance: document.getElementById('resetEnhance'),
 };
 
 let state = {
@@ -54,7 +68,15 @@ let state = {
   quality: 0.92,
   objectUrl: null,
   outBlob: null,
+  enhance: { brightness:0, contrast:0, highlights:0, shadows:0, warmth:0, vibrance:0, saturation:0 },
+  autoEnhance:false,
 };
+function getEnhanceOpts(){
+  if(state.autoEnhance) return { autoEnhance:true };
+  const e=state.enhance;
+  const has = Object.values(e).some(v=>v!==0);
+  return has ? { enhance: {...e} } : {};
+}
 
 function currentPreset(){
   return PRESETS[state.platform].find(p=>p.id===state.formatId) || PRESETS[state.platform][0];
@@ -155,7 +177,8 @@ function optimize(){
   try {
     const engine = window.PixelPerfectOptimizer;
     if(engine && engine.optimizeToCanvas){
-      engine.optimizeToCanvas(img, TW, TH, canvas, { sharpen: els.sharpen.checked });
+      const enhOpts = getEnhanceOpts();
+      engine.optimizeToCanvas(img, TW, TH, canvas, { sharpen: els.sharpen.checked, ...enhOpts });
     } else {
       // fallback single-step if optimizer not loaded
       const ctx = canvas.getContext('2d', {willReadFrequently:true});
@@ -227,6 +250,37 @@ els.quality.addEventListener('input', ()=>{
 });
 els.optimizeBtn.addEventListener('click', optimize);
 els.newBtn.addEventListener('click', clearFile);
+
+// Enhance wiring
+function syncEnhanceUI(){
+  els.valBright.textContent=state.enhance.brightness;
+  els.valContrast.textContent=state.enhance.contrast;
+  els.valHighlights.textContent=state.enhance.highlights;
+  els.valShadows.textContent=state.enhance.shadows;
+  els.valWarmth.textContent=state.enhance.warmth;
+  els.valVibrance.textContent=state.enhance.vibrance;
+  const disabled = state.autoEnhance;
+  [els.bright, els.contrast, els.highlights, els.shadows, els.warmth, els.vibrance].forEach(el=>{ el.disabled=disabled; el.parentElement.style.opacity=disabled?'0.45':'1'; });
+}
+function onEnhanceChange(){
+  state.enhance.brightness=parseInt(els.bright.value,10);
+  state.enhance.contrast=parseInt(els.contrast.value,10);
+  state.enhance.highlights=parseInt(els.highlights.value,10);
+  state.enhance.shadows=parseInt(els.shadows.value,10);
+  state.enhance.warmth=parseInt(els.warmth.value,10);
+  state.enhance.vibrance=parseInt(els.vibrance.value,10);
+  syncEnhanceUI();
+  if(state.outBlob && state.img) optimize();
+}
+[els.bright, els.contrast, els.highlights, els.shadows, els.warmth, els.vibrance].forEach(el=> el && el.addEventListener('input', onEnhanceChange));
+if(els.autoEnhance) els.autoEnhance.addEventListener('change', ()=>{ state.autoEnhance=els.autoEnhance.checked; syncEnhanceUI(); if(state.outBlob && state.img) optimize(); });
+if(els.resetEnhance) els.resetEnhance.addEventListener('click', ()=>{
+  state.enhance={brightness:0,contrast:0,highlights:0,shadows:0,warmth:0,vibrance:0,saturation:0};
+  state.autoEnhance=false; if(els.autoEnhance) els.autoEnhance.checked=false;
+  els.bright.value=0; els.contrast.value=0; els.highlights.value=0; els.shadows.value=0; els.warmth.value=0; els.vibrance.value=0;
+  syncEnhanceUI(); if(state.outBlob && state.img) optimize();
+});
+syncEnhanceUI();
 
 // paste support
 document.addEventListener('paste', e=>{

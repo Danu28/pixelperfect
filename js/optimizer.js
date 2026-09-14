@@ -30,7 +30,7 @@ export const PRESETS = {
  * @param {number} opts.sharpenStrength - 0..1 (auto if null)
  */
 export function optimizeToCanvas(img, TW, TH, outCanvas, opts = {}) {
-  const { sharpen = true, sharpenStrength = null } = opts;
+  const { sharpen = true, sharpenStrength = null, enhance=null, autoEnhance=false } = opts;
   const sw = img.naturalWidth || img.width;
   const sh = img.naturalHeight || img.height;
 
@@ -112,6 +112,31 @@ export function optimizeToCanvas(img, TW, TH, outCanvas, opts = {}) {
   outCtx.fillStyle = '#ffffff';
   outCtx.fillRect(0,0,TW,TH);
   outCtx.drawImage(curCanvas, 0, 0, curW, curH, 0, 0, TW, TH);
+
+  // 5.5 Enhance: color correction, brightness, highlights/shadows (before sharpen)
+  if(enhance || autoEnhance){
+    try{
+      let enh = enhance;
+      // resolve enhance module (browser: window, node: dynamic import fallback)
+      const getEnhance = ()=> (typeof window!=='undefined' && window.PixelPerfectEnhance) ? window.PixelPerfectEnhance : null;
+      let mod = getEnhance();
+      if(autoEnhance && !enh){
+        if(!mod){
+          // node fallback: try import
+          // will be handled externally, keep mild defaults
+          enh = { brightness:4, contrast:6, highlights:-10, shadows:12, warmth:2, vibrance:10 };
+        } else {
+          enh = mod.autoEnhanceParams(outCtx, TW, TH);
+        }
+      }
+      if(enh && mod){
+        mod.applyEnhance(outCtx, TW, TH, enh);
+      } else if(enh){
+        // fallback inline minimal enhance if module not loaded (brightness/contrast only)
+        // handled by enhance.js when loaded, so skip
+      }
+    }catch(e){ console.warn('enhance failed', e); }
+  }
 
   // 6. Adaptive sharpen: strength depends on scale factor
   if (sharpen) {

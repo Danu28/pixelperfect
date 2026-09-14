@@ -109,6 +109,19 @@ input[type=range]{accent-color:var(--accent2);width:160px}
 .foot{margin-top:18px;border-top:1px solid var(--border);padding:14px 0;color:var(--muted);font-size:12px}
 .foot-inner{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .foot a{color:var(--muted)}
+.enhance-step{border:1px solid var(--border);background:var(--card2);border-radius:14px;padding:14px}
+.enhance-step .step-head{justify-content:space-between}
+.switch{display:flex;align-items:center;gap:6px;font-size:12px;color:#cbd5e1;font-weight:600;background:#0f1116;border:1px solid var(--border);padding:4px 8px;border-radius:99px;cursor:pointer}
+.switch input{accent-color:var(--accent2)}
+.enhance-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-top:8px}
+.slider-row{display:flex;flex-direction:column;gap:4px}
+.slider-row label{font-size:11px;color:#cbd5e1;display:flex;justify-content:space-between}
+.slider-row input{width:100%;accent-color:var(--accent2)}
+.enhance-actions{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.ghost.small{padding:6px 10px;font-size:11px;border-radius:99px}
+@media(max-width:860px){
+  .enhance-grid{grid-template-columns:1fr}
+}
 @media(max-width:860px){
   .app-grid{grid-template-columns:1fr}
   .spec-grid{grid-template-columns:1fr 1fr}
