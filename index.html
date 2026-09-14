@@ -7,6 +7,7 @@
   <meta name="description" content="Upload your photo, pick Instagram or WhatsApp, choose story/post/status and get a high-quality optimized image instantly. 100% private — runs in your browser.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23ff3b6e'/><text x='16' y='21' text-anchor='middle' font-size='16' fill='white'>◉</text></svg>">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -203,10 +204,20 @@
     </div>
   </footer>
 
-  <script type="module" src="js/enhance.js"></script>
-  <script type="module" src="js/segment-engine.js"></script>
-  <script type="module" src="js/optimizer.js"></script>
-  <script type="module" src="js/production-engine.js"></script>
+  <div id="fileProtocolBanner" class="hidden" style="position:fixed;top:0;left:0;right:0;background:#ff3b6e;color:white;text-align:center;padding:10px;font-size:13px;z-index:99">⚠ Opened via file:// — modules need a server. Run <code>npx serve .</code> or <code>python -m http.server</code> and open http://localhost:8000</div>
+  <script>
+    if(location.protocol==='file:'){
+      document.getElementById('fileProtocolBanner').classList.remove('hidden');
+      document.getElementById('fileProtocolBanner').classList.add('visible');
+    }
+    window.addEventListener('error', e=>{
+      const msg=document.getElementById('errorMsg');
+      if(msg && e.message && e.message.includes('Failed to fetch')){
+        msg.textContent='Module load failed (file://). Please serve via http: npx serve .';
+        msg.classList.remove('hidden');
+      }
+    });
+  </script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
