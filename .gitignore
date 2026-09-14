@@ -3,3 +3,17 @@ Thumbs.db
 *.log
 node_modules/
 dist/
+output/
+test/output/
+raw.jpg
+My-Pic.jpg
+compare.html
+generate-*.js
+run-my-pic.js
+self-improving-loop.js
+server.js
+artifacts/
+.pi/
+coverage/
+.tmp/
+*.tmp
