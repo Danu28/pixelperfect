@@ -146,35 +146,28 @@ function clearFile(){
   updateOptimizeState();
 }
 
-// canvas optimize
+// HQ optimize via pyramid engine (js/optimizer.js) — fixes pixelation
 function optimize(){
   const p = currentPreset();
   const {w: TW, h: TH} = p;
   const img = state.img;
   const canvas = els.workCanvas;
-  const ctx = canvas.getContext('2d', {willReadFrequently:true});
-  canvas.width = TW; canvas.height = TH;
-
-  // high quality
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-
-  // cover crop: calculate src rect
-  const scale = Math.max(TW / img.naturalWidth, TH / img.naturalHeight);
-  const srcW = TW / scale;
-  const srcH = TH / scale;
-  const sx = (img.naturalWidth - srcW)/2;
-  const sy = (img.naturalHeight - srcH)/2;
-
-  // fill background (avoid transparent edges for jpeg)
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0,0,TW,TH);
-  ctx.drawImage(img, sx, sy, srcW, srcH, 0, 0, TW, TH);
-
-  // subtle sharpen via convolution if enabled
-  if(els.sharpen.checked){
-    try{ applySharpen(ctx, TW, TH); }catch(e){}
-  }
+  try {
+    const engine = window.PixelPerfectOptimizer;
+    if(engine && engine.optimizeToCanvas){
+      engine.optimizeToCanvas(img, TW, TH, canvas, { sharpen: els.sharpen.checked });
+    } else {
+      // fallback single-step if optimizer not loaded
+      const ctx = canvas.getContext('2d', {willReadFrequently:true});
+      canvas.width=TW; canvas.height=TH;
+      ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+      const scale=Math.max(TW/img.naturalWidth, TH/img.naturalHeight);
+      const srcW=TW/scale, srcH=TH/scale;
+      const sx=(img.naturalWidth-srcW)/2, sy=(img.naturalHeight-srcH)/2;
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,TW,TH);
+      ctx.drawImage(img,sx,sy,srcW,srcH,0,0,TW,TH);
+    }
+  } catch(e){ setError('Optimization error: '+e.message); return; }
 
   const mime = state.outFmt==='png' ? 'image/png' : state.outFmt==='webp' ? 'image/webp' : 'image/jpeg';
   const quality = state.outFmt==='png' ? undefined : state.quality;
@@ -184,39 +177,15 @@ function optimize(){
     state.outBlob = blob;
     const url = URL.createObjectURL(blob);
     els.outImg.src = url;
-    els.outMeta.textContent = `Optimized · ${TW}×${TH} · ${(blob.size/1024).toFixed(0)} KB · ${state.outFmt.toUpperCase()}`;
+    els.outMeta.textContent = `Optimized · ${TW}×${TH} · ${(blob.size/1024).toFixed(0)} KB · ${state.outFmt.toUpperCase()} · HQ pyramid`;
     els.emptyState.classList.add('hidden');
     els.previewWrap.classList.remove('hidden');
     els.previewWrap.scrollIntoView({behavior:'smooth', block:'nearest'});
-
     const ext = state.outFmt==='jpeg' ? 'jpg' : state.outFmt;
     const base = state.file ? state.file.name.replace(/\.[^.]+$/,'') : 'image';
     els.downloadBtn.href = url;
     els.downloadBtn.download = `${base}-${state.platform}-${state.formatId}-${TW}x${TH}.${ext}`;
-    // auto trigger download? keep preview; user clicks
   }, mime, quality);
-}
-
-function applySharpen(ctx, w, h){
-  // 3x3 sharpen kernel: 0 -1 0 / -1 5 -1 / 0 -1 0 with mix 0.35 for subtle
-  const imgData = ctx.getImageData(0,0,w,h);
-  const d = imgData.data;
-  const out = new Uint8ClampedArray(d);
-  const mix = 0.45;
-  const idx = (x,y)=> (y*w + x)*4;
-  for(let y=1;y<h-1;y++){
-    for(let x=1;x<w-1;x++){
-      for(let c=0;c<3;c++){
-        const i = idx(x,y)+c;
-        const v = d[i]*5 - d[idx(x-1,y)+c] - d[idx(x+1,y)+c] - d[idx(x,y-1)+c] - d[idx(x,y+1)+c];
-        const clamped = Math.max(0, Math.min(255, v));
-        out[i] = Math.round(d[i]*(1-mix) + clamped*mix);
-      }
-    }
-  }
-  // copy back except border
-  for(let i=0;i<d.length;i++) d[i]=out[i];
-  ctx.putImageData(imgData,0,0);
 }
 
 // events

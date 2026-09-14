@@ -1,0 +1,12 @@
+{
+  "name": "pixelperfect",
+  "version": "2.0.0",
+  "type": "module",
+  "description": "High-quality social image optimizer - anti-pixelation engine",
+  "scripts": {
+    "test": "node test/run-tests.js"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.65"
+  }
+}
