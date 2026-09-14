@@ -168,16 +168,20 @@ function clearFile(){
   updateOptimizeState();
 }
 
-// HQ optimize via pyramid engine (js/optimizer.js) — fixes pixelation
+// HQ production via per-segment engine (js/production-engine.js) — raw → high quality
 function optimize(){
   const p = currentPreset();
   const {w: TW, h: TH} = p;
   const img = state.img;
   const canvas = els.workCanvas;
   try {
+    const prod = window.PixelPerfectProduction;
     const engine = window.PixelPerfectOptimizer;
-    if(engine && engine.optimizeToCanvas){
-      const enhOpts = getEnhanceOpts();
+    const enhOpts = getEnhanceOpts();
+    if(prod && prod.produceHighQuality){
+      const res = prod.produceHighQuality(img, TW, TH, canvas, { sharpen: els.sharpen.checked, ...enhOpts, segment: true });
+      if(res && res.stats) console.log('segment stats', res.stats);
+    } else if(engine && engine.optimizeToCanvas){
       engine.optimizeToCanvas(img, TW, TH, canvas, { sharpen: els.sharpen.checked, ...enhOpts });
     } else {
       // fallback single-step if optimizer not loaded
