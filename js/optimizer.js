@@ -1,8 +1,6 @@
+import { computeCoverCrop, hqResize } from './hq-resize.js';
 /**
- * PixelPerfect HQ Engine v2 — Anti-pixelation algorithm
- * Problem: single drawImage with imageSmoothingQuality='high' still pixelates
- * when scaling >2x (browser does naive single-step filter -> aliasing & blur).
- * Solution: pyramid halving + final bicubic + adaptive sharpen.
+ * PixelPerfect HQ Engine v3 — Gamma-correct Lanczos pyramid + raw denoise
  */
 
 export const PRESETS = {
@@ -33,85 +31,24 @@ export function optimizeToCanvas(img, TW, TH, outCanvas, opts = {}) {
   const { sharpen = true, sharpenStrength = null, enhance=null, autoEnhance=false } = opts;
   const sw = img.naturalWidth || img.width;
   const sh = img.naturalHeight || img.height;
+  const isRaw = (sw*sh > 6000000) || Math.max(sw,sh) > 2800;
 
-  // 1. Compute cover crop rect (center)
-  const scale = Math.max(TW / sw, TH / sh);
-  let srcW = TW / scale;
-  let srcH = TH / scale;
-  let sx = (sw - srcW) / 2;
-  let sy = (sh - srcH) / 2;
+  // 1. Compute cover crop rect (center) — fixed math via hq-resize
+  const crop=computeCoverCrop(sw, sh, TW, TH);
+  let srcW=crop.srcW, srcH=crop.srcH, sx=crop.sx, sy=crop.sy;
 
-  // clamp
-  sx = Math.max(0, sx); sy = Math.max(0, sy);
-  srcW = Math.min(sw - sx, srcW);
-  srcH = Math.min(sh - sy, srcH);
-
-  // 2. Extract crop to temp canvas at native crop size first
-  // This isolates the region and allows pyramid steps without re-sampling background.
-  let curCanvas = document.createElement('canvas');
-  let curCtx = curCanvas.getContext('2d', { willReadFrequently: true });
-  curCanvas.width = Math.round(srcW);
-  curCanvas.height = Math.round(srcH);
-  curCtx.imageSmoothingEnabled = true;
-  curCtx.imageSmoothingQuality = 'high';
-  // draw crop at 1:1
-  curCtx.drawImage(img, sx, sy, srcW, srcH, 0, 0, curCanvas.width, curCanvas.height);
-
-  let curW = curCanvas.width;
-  let curH = curCanvas.height;
-
-  // 3. Pyramid downscale: halve repeatedly until within 1.8x of target
-  // Keep 1.8 for moderate 1.5x (My-Pic) to avoid extra blur from halve+upscale; only aggressive >1.8 triggers pyramid
-  while (curW > TW * 1.8 || curH > TH * 1.8) {
-    const nextW = Math.max(TW, Math.round(curW * 0.5));
-    const nextH = Math.max(TH, Math.round(curH * 0.5));
-    // If next step is still > target, halve; otherwise break to final
-    if (nextW < TW || nextH < TH) break;
-    // Don't overshoot: if halving would go below target by >10%, do direct
-    const tmp = document.createElement('canvas');
-    tmp.width = nextW; tmp.height = nextH;
-    const tctx = tmp.getContext('2d', { willReadFrequently: true });
-    tctx.imageSmoothingEnabled = true;
-    tctx.imageSmoothingQuality = 'high';
-    tctx.drawImage(curCanvas, 0, 0, curW, curH, 0, 0, nextW, nextH);
-    curCanvas = tmp;
-    curCtx = tctx;
-    curW = nextW; curH = nextH;
-    // safety: prevent infinite
-    if (curW <= TW && curH <= TH) break;
-  }
-
-  // 4. Handle upscaling smoothly: step progressively if >2x upscale
-  // Upscaling: single high-quality step is actually best for sharpness (browser bicubic)
-  // Only use stepwise if upscale >3x to avoid blockiness, else do direct final draw
-  if ((TW/curW > 3 || TH/curH > 3) && (curW * 2 < TW || curH * 2 < TH)) {
-    let steps = Math.ceil(Math.log2(Math.max(TW/curW, TH/curH)));
-    steps = Math.min(steps, 3);
-    for (let i = 0; i < steps; i++) {
-      const isLast = i === steps - 1;
-      const interW = isLast ? TW : Math.round(curW * Math.pow(TW/curW, (i+1)/steps));
-      const interH = isLast ? TH : Math.round(curH * Math.pow(TH/curH, (i+1)/steps));
-      if (interW === curW && interH === curH) continue;
-      const tmp = document.createElement('canvas');
-      tmp.width = interW; tmp.height = interH;
-      const tctx = tmp.getContext('2d', { willReadFrequently: true });
-      tctx.imageSmoothingEnabled = true;
-      tctx.imageSmoothingQuality = 'high';
-      tctx.drawImage(curCanvas, 0, 0, curW, curH, 0, 0, interW, interH);
-      curCanvas = tmp; curCtx = tctx;
-      curW = interW; curH = interH;
-    }
-  }
-
-  // 5. Final draw to output canvas at exact dimensions (bicubic)
-  outCanvas.width = TW; outCanvas.height = TH;
-  const outCtx = outCanvas.getContext('2d', { willReadFrequently: true });
-  outCtx.imageSmoothingEnabled = true;
-  outCtx.imageSmoothingQuality = 'high';
-  // white matte for JPEG (avoid black transparent edges)
-  outCtx.fillStyle = '#ffffff';
-  outCtx.fillRect(0,0,TW,TH);
-  outCtx.drawImage(curCanvas, 0, 0, curW, curH, 0, 0, TW, TH);
+  // 2-5. HQ resize via hq-resize (gamma-correct + raw denoise + Lanczos pyramid + correct crop)
+  let curCanvas=document.createElement('canvas');
+  let curCtx=curCanvas.getContext('2d',{willReadFrequently:true});
+  curCanvas.width=Math.round(srcW); curCanvas.height=Math.round(srcH);
+  curCtx.imageSmoothingEnabled=true; curCtx.imageSmoothingQuality='high';
+  curCtx.drawImage(img, sx, sy, srcW, srcH, 0,0,curCanvas.width, curCanvas.height);
+  // Use HQ pyramid (handles raw denoise + gamma internally)
+  const tmpOut=document.createElement('canvas');
+  hqResize(curCanvas, TW, TH, tmpOut, isRaw);
+  outCanvas.width=TW; outCanvas.height=TH;
+  const outCtx=outCanvas.getContext('2d',{willReadFrequently:true});
+  outCtx.drawImage(tmpOut,0,0);
 
   // 5.5 Enhance: color correction, brightness, highlights/shadows (before sharpen)
   if(enhance || autoEnhance){

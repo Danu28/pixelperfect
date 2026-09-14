@@ -6,6 +6,7 @@
 
 import { applyEnhance, autoEnhanceParams } from './enhance.js';
 import { createMasks, applyPerSegmentColor, applyPerSegmentSharpen, applySkyDenoise } from './segment-engine.js';
+import { computeCoverCrop, hqResize } from './hq-resize.js';
 
 export function produceHighQuality(img, TW, TH, outCanvas, opts={}){
   const {
@@ -19,50 +20,22 @@ export function produceHighQuality(img, TW, TH, outCanvas, opts={}){
 
   // Reuse pyramid logic from optimizer (duplicated for self-contained production)
   const sw=img.naturalWidth||img.width, sh=img.naturalHeight||img.height;
-  const scale=Math.max(TW/sw, TH/sh);
-  let srcW=TW/scale, srcH=TH/scale;
-  let sx=(sw-srcW)/2, sy=(sh-srcH)/2;
-  sx=Math.max(0,sx); sy=Math.max(0,sy);
-  srcW=Math.min(sw-sx, srcW); srcH=Math.min(sh-sy, srcH);
+  const isRaw = (sw*sh > 6000000) || Math.max(sw,sh) > 3000; // raw high-res detection
+  const crop=computeCoverCrop(sw, sh, TW, TH);
+  let srcW=crop.srcW, srcH=crop.srcH, sx=crop.sx, sy=crop.sy;
 
   let curCanvas=document.createElement('canvas');
   let curCtx=curCanvas.getContext('2d',{willReadFrequently:true});
   curCanvas.width=Math.round(srcW); curCanvas.height=Math.round(srcH);
   curCtx.imageSmoothingEnabled=true; curCtx.imageSmoothingQuality='high';
   curCtx.drawImage(img, sx, sy, srcW, srcH, 0,0,curCanvas.width, curCanvas.height);
-  let curW=curCanvas.width, curH=curCanvas.height;
 
-  while(curW > TW*1.8 || curH > TH*1.8){
-    const nextW=Math.max(TW, Math.round(curW*0.5));
-    const nextH=Math.max(TH, Math.round(curH*0.5));
-    if(nextW<TW || nextH<TH) break;
-    const tmp=document.createElement('canvas'); tmp.width=nextW; tmp.height=nextH;
-    const tctx=tmp.getContext('2d',{willReadFrequently:true});
-    tctx.imageSmoothingEnabled=true; tctx.imageSmoothingQuality='high';
-    tctx.drawImage(curCanvas,0,0,curW,curH,0,0,nextW,nextH);
-    curCanvas=tmp; curCtx=tctx; curW=nextW; curH=nextH;
-    if(curW<=TW && curH<=TH) break;
-  }
-  if((TW/curW>3 || TH/curH>3) && (curW*2<TW || curH*2<TH)){
-    let steps=Math.ceil(Math.log2(Math.max(TW/curW, TH/curH))); steps=Math.min(steps,3);
-    for(let i=0;i<steps;i++){
-      const isLast=i===steps-1;
-      const interW=isLast?TW:Math.round(curW*Math.pow(TW/curW,(i+1)/steps));
-      const interH=isLast?TH:Math.round(curH*Math.pow(TH/curH,(i+1)/steps));
-      if(interW===curW && interH===curH) continue;
-      const tmp=document.createElement('canvas'); tmp.width=interW; tmp.height=interH;
-      const tctx=tmp.getContext('2d',{willReadFrequently:true});
-      tctx.imageSmoothingEnabled=true; tctx.imageSmoothingQuality='high';
-      tctx.drawImage(curCanvas,0,0,curW,curH,0,0,interW,interH);
-      curCanvas=tmp; curCtx=tctx; curW=interW; curH=interH;
-    }
-  }
-
+  // Use HQ resize with gamma + raw denoise
+  const tmpOut=document.createElement('canvas');
+  hqResize(curCanvas, TW, TH, tmpOut, isRaw);
   outCanvas.width=TW; outCanvas.height=TH;
   const outCtx=outCanvas.getContext('2d',{willReadFrequently:true});
-  outCtx.imageSmoothingEnabled=true; outCtx.imageSmoothingQuality='high';
-  outCtx.fillStyle='#ffffff'; outCtx.fillRect(0,0,TW,TH);
-  outCtx.drawImage(curCanvas,0,0,curW,curH,0,0,TW,TH);
+  outCtx.drawImage(tmpOut,0,0);
 
   // Global enhance first (auto or manual)
   if(enhance || autoEnhance){
