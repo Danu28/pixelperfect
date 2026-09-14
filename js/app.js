@@ -1,5 +1,4 @@
-import { produceHighQuality } from './production-engine.js';
-import { optimizeToCanvas } from './optimizer.js';
+import { produceHighQuality, optimizeToCanvas } from './enhancement-engine.js';
 
 const PRESETS = {
   instagram: [

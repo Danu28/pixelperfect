@@ -34,14 +34,13 @@ All masks feathered 3×3 (8-neighbour) for seamless blend.
 ## Why not ML?
 BodyPix/FaceAPI = 3MB model + 200ms on mobile. Heuristic is 0.5ms, no download, privacy-friendly (all Canvas). 92% accuracy for our use (My-Pic skin 12% of pixels, sky 8% detected correctly).
 
-## Files
-- `js/segment-engine.js` — `createMasks`, `applyPerSegmentColor`, `applyPerSegmentSharpen`, `applySkyDenoise`
-- `js/production-engine.js` — `produceHighQuality(img,TW,TH,canvas,opts)` orchestrator
-- `js/optimizer.js` — still used for fallback/simple path
-- `js/enhance.js` — global enhance (auto/manual) called before segment
+## Files (consolidated)
+- `js/enhancement-engine.js` — **single source** (1 engine) — merges hq-resize + enhance + segment + optimizer + production. All exports in one file.
+- `js/enhance.js`, `js/hq-resize.js`, `js/segment-engine.js`, `js/optimizer.js`, `js/production-engine.js` — thin re-export shims (`export * from './enhancement-engine.js'`) for backward compat (Node tests & old imports)
+- `js/app.js` now imports only `import {produceHighQuality, optimizeToCanvas} from './enhancement-engine.js'`
 
-## Quality Targets (My-Pic)
-Portrait 1080×1350: var >2150 sharp >17, Story var >550, Profile var >3200 — achieved via per-segment boost (fabric +45%, skin -68%)
+## Quality Targets (My-Pic + raw 3072×4096)
+Portrait 1080×1350: var >2150 sharp >17, Story var >550, Profile var >3200 — achieved via per-segment boost (fabric +48%, skin -55%) and gamma-correct hq-resize (raw denoise + Lanczos pyramid)
 
 ## Usage
 ```js
