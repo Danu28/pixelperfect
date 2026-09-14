@@ -60,8 +60,8 @@ export function optimizeToCanvas(img, TW, TH, outCanvas, opts = {}) {
   let curW = curCanvas.width;
   let curH = curCanvas.height;
 
-  // 3. Pyramid downscale: halve repeatedly until within 1.5-2x of target
-  // This is the key anti-alias technique: each halving is <=50% so filter stays accurate.
+  // 3. Pyramid downscale: halve repeatedly until within 1.8x of target
+  // Keep 1.8 for moderate 1.5x (My-Pic) to avoid extra blur from halve+upscale; only aggressive >1.8 triggers pyramid
   while (curW > TW * 1.8 || curH > TH * 1.8) {
     const nextW = Math.max(TW, Math.round(curW * 0.5));
     const nextH = Math.max(TH, Math.round(curH * 0.5));
@@ -121,12 +121,12 @@ export function optimizeToCanvas(img, TW, TH, outCanvas, opts = {}) {
     if (sharpenStrength !== null) {
       strength = sharpenStrength;
     } else {
-      // auto: stronger to counter multi-step blur, still edge-aware
-      if (downscale > 3) strength = 0.62;
-      else if (downscale > 2) strength = 0.50;
-      else if (downscale > 1.3) strength = 0.42;
-      else if (upscale > 2) strength = 0.35;
-      else strength = 0.32;
+      // My-Pic tuned: slightly stronger for 1.5x portrait to preserve hair/fabric
+      if (downscale > 3) strength = 0.65;
+      else if (downscale > 2) strength = 0.55;
+      else if (downscale > 1.3) strength = 0.52;
+      else if (upscale > 2) strength = 0.38;
+      else strength = 0.35;
     }
     if (strength > 0.05) applyAdaptiveSharpen(outCtx, TW, TH, strength);
   }
@@ -163,10 +163,10 @@ function applyAdaptiveSharpen(ctx, w, h, strength) {
   for (let i = 0; i < data.length; i += 4) {
     // edge detection via difference
     const diff = Math.abs(data[i] - blurred2[i]) + Math.abs(data[i+1]-blurred2[i+1]) + Math.abs(data[i+2]-blurred2[i+2]);
-    const edge = Math.min(1, diff / 70); // slightly more sensitive
-    const s = strength * (0.55 + 0.45 * edge); // preserve more on flat areas to avoid blur
+    const edge = Math.min(1, diff / 55); // more sensitive for fabric/hair detail
+    const s = strength * (0.40 + 0.60 * edge); // stronger on edges, gentler on skin flats
     for (let c = 0; c < 3; c++) {
-      const v = data[i+c] + (data[i+c] - blurred2[i+c]) * s * 1.6;
+      const v = data[i+c] + (data[i+c] - blurred2[i+c]) * s * 1.85;
       data[i+c] = v < 0 ? 0 : v > 255 ? 255 : v;
     }
   }
