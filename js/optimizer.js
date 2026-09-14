@@ -149,7 +149,7 @@ export function optimizeToCanvas(img, TW, TH, outCanvas, opts = {}) {
       // My-Pic tuned: slightly stronger for 1.5x portrait to preserve hair/fabric
       if (downscale > 3) strength = 0.65;
       else if (downscale > 2) strength = 0.55;
-      else if (downscale > 1.3) strength = 0.52;
+      else if (downscale > 1.3) strength = 0.62;
       else if (upscale > 2) strength = 0.38;
       else strength = 0.35;
     }
