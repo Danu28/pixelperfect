@@ -4,7 +4,7 @@
 
 ![license](https://img.shields.io/badge/license-MIT-blue) ![client-side](https://img.shields.io/badge/privacy-100%25%20client--side-brightgreen) ![pipeline](https://img.shields.io/badge/pipeline-pyramid%2Bsegment-purple) ![high-quality](https://img.shields.io/badge/quality-production-green)
 
-**Live:** Open `index.html` — no build. Or `npx serve .` → http://localhost:3000
+**Live:** https://danu28.github.io/pixelperfect/ · Open `index.html` — no build. Or `npx serve .` → http://localhost:3000
 
 ---
 
@@ -33,7 +33,7 @@
 ### 🚀 Quick Start
 
 ```bash
-git clone <repo>
+git clone https://github.com/Danu28/pixelperfect.git
 npx serve .
 # open http://localhost:3000
 # or python -m http.server 8000
@@ -60,7 +60,7 @@ User Raw (e.g. raw.jpg 3072×4096)
 
 ### 🌐 Deploy
 
-**GitHub Pages:** Push → Settings → Pages → Branch `main` / root → live in 30s.
+**GitHub Pages:** Live at https://danu28.github.io/pixelperfect/ (branch `main` / root).
 
 **Netlify/Vercel:** Drag folder or `git push`, no build command.
 
