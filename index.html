@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PixelPerfect — Social Media Image Optimizer</title>
+  <meta name="description" content="Upload your photo, pick Instagram or WhatsApp, choose story/post/status and get a high-quality optimized image instantly. 100% private — runs in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="bg-blob blob1"></div>
+  <div class="bg-blob blob2"></div>
+
+  <header class="nav">
+    <div class="container nav-inner">
+      <div class="logo">
+        <div class="logo-mark">◉</div>
+        <span>PixelPerfect</span>
+        <span class="badge">BETA</span>
+      </div>
+      <a href="https://github.com" target="_blank" class="github-link">★ GitHub</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>High-quality images<br><span class="gradient">for every social.</span></h1>
+      <p>Upload your photo, pick a platform, choose the format and get a pixel-perfect image — optimized, sharp, and ready to post. No upload to servers, everything stays on your device.</p>
+      <div class="hero-pills">
+        <span>✦ Instagram</span>
+        <span>✦ WhatsApp</span>
+        <span>✦ No quality loss</span>
+        <span>✦ 100% Private</span>
+      </div>
+    </section>
+
+    <section class="app-grid">
+      <!-- LEFT: Controls -->
+      <div class="card controls">
+        <!-- Upload -->
+        <div class="step">
+          <div class="step-head"><span class="num">1</span><h3>Upload photo</h3></div>
+          <div id="dropZone" class="drop-zone">
+            <input type="file" id="fileInput" accept="image/*" hidden>
+            <div id="dropContent">
+              <div class="upload-icon">⬆</div>
+              <p class="dz-title">Drag & drop your image here</p>
+              <p class="dz-sub">or <button type="button" id="browseBtn" class="link-btn">browse files</button> — JPG, PNG, WebP up to 20MB</p>
+            </div>
+            <div id="filePreview" class="file-preview hidden">
+              <img id="thumb" alt="preview">
+              <div class="file-meta">
+                <p id="fileName"></p>
+                <p id="fileInfo" class="muted"></p>
+              </div>
+              <button id="removeFile" class="icon-btn" title="Remove">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Platform -->
+        <div class="step">
+          <div class="step-head"><span class="num">2</span><h3>Choose platform</h3></div>
+          <div class="platforms">
+            <button class="platform-card active" data-platform="instagram">
+              <span class="p-icon insta">◈</span>
+              <span class="p-name">Instagram</span>
+              <span class="p-desc">Post, Portrait, Story</span>
+            </button>
+            <button class="platform-card" data-platform="whatsapp">
+              <span class="p-icon wa">✆</span>
+              <span class="p-name">WhatsApp</span>
+              <span class="p-desc">Status, Profile, Square</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Format -->
+        <div class="step">
+          <div class="step-head"><span class="num">3</span><h3>Select format</h3></div>
+          <div id="formatGrid" class="format-grid">
+            <!-- injected by JS -->
+          </div>
+          <p id="formatHint" class="hint"></p>
+        </div>
+
+        <!-- Options -->
+        <div class="step">
+          <div class="step-head"><span class="num">4</span><h3>Export settings</h3></div>
+          <div class="export-row">
+            <label>Output</label>
+            <div class="seg">
+              <button class="seg-btn active" data-fmt="jpeg">JPEG</button>
+              <button class="seg-btn" data-fmt="png">PNG</button>
+              <button class="seg-btn" data-fmt="webp">WebP</button>
+            </div>
+          </div>
+          <div class="export-row" id="qualityRow">
+            <label for="quality">Quality <span id="qualityVal">92%</span></label>
+            <input type="range" id="quality" min="60" max="100" value="92">
+          </div>
+          <label class="check"><input type="checkbox" id="sharpen" checked> Apply subtle sharpen (recommended)</label>
+        </div>
+
+        <button id="optimizeBtn" class="cta" disabled>◎ Optimize & Download</button>
+        <p id="errorMsg" class="error hidden"></p>
+      </div>
+
+      <!-- RIGHT: Preview -->
+      <div class="card preview-card">
+        <div class="preview-head">
+          <h3>Preview</h3>
+          <span id="dimBadge" class="dim-badge">—</span>
+        </div>
+
+        <div id="emptyState" class="empty">
+          <div class="empty-art">🖼️</div>
+          <p>Your optimized image will appear here</p>
+          <span class="muted">Upload a photo and click optimize</span>
+        </div>
+
+        <div id="previewWrap" class="preview-wrap hidden">
+          <div class="compare">
+            <div class="compare-col">
+              <span class="label">Original</span>
+              <div class="img-box"><img id="origImg" alt="original"></div>
+              <span id="origMeta" class="meta"></span>
+            </div>
+            <div class="compare-col">
+              <span class="label">Optimized <span class="dot"></span></span>
+              <div class="img-box highlight"><img id="outImg" alt="optimized"><canvas id="workCanvas" hidden></canvas></div>
+              <span id="outMeta" class="meta"></span>
+            </div>
+          </div>
+          <div class="result-actions">
+            <a id="downloadBtn" class="cta secondary" download>⬇ Download image</a>
+            <button id="newBtn" class="ghost">Start over</button>
+          </div>
+          <ul class="tips">
+            <li>✓ Resized with high-quality bicubic smoothing</li>
+            <li>✓ Center-cropped to fill (no distortion)</li>
+            <li>✓ Preserves sharpness & color</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="specs">
+      <h4>Dimensions guide</h4>
+      <div class="spec-grid">
+        <div><strong>Instagram Post</strong><span>1080×1080 · 1:1 · Feed square</span></div>
+        <div><strong>Instagram Portrait</strong><span>1080×1350 · 4:5 · Max feed size</span></div>
+        <div><strong>Instagram Story / Reel Cover</strong><span>1080×1920 · 9:16 · Full screen</span></div>
+        <div><strong>WhatsApp Status</strong><span>1080×1920 · 9:16 · Full screen</span></div>
+        <div><strong>WhatsApp Profile</strong><span>640×640 · 1:1 · Circle crop safe</span></div>
+        <div><strong>WhatsApp Square</strong><span>1080×1080 · 1:1 · Chat share</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="container foot-inner">
+      <span>© 2026 PixelPerfect — 100% client-side. No data leaves your browser.</span>
+      <span class="muted">Made for creators ✦ <a href="#">Privacy</a> · <a href="#">GitHub</a></span>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
