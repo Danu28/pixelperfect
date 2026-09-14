@@ -27,20 +27,21 @@ export function analyzeImage(ctx, w, h){
 export function autoEnhanceParams(ctx,w,h){
   const a=analyzeImage(ctx,w,h);
   const p={};
-  // brightness: bring avg to ~125
-  const target=118;
-  const bDiff=target - a.avgL;
-  p.brightness = Math.max(-12, Math.min(12, Math.round(bDiff*0.35)));
-  // contrast: slight if low variance
-  p.contrast = 6;
-  // highlights: recover if clipped
-  p.highlights = a.clipHiRatio>0.02 ? -18 : -6;
-  // shadows: lift if crushed
-  p.shadows = a.clipLoRatio>0.03 ? 18 : 10;
-  // warmth: neutralize cast slightly (strength 0.4)
-  p.warmth = Math.max(-8, Math.min(8, Math.round((-a.castR*0.18 + a.castB*0.12))));
-  // vibrance: subtle boost
-  p.vibrance = 12;
+  // Learn from vivid: My-Pic avgL 143 should get +2..+6 not -9, target higher for portraits
+  // Vivid brightness +6, contrast 8, highlights -18, shadows 18, warmth +4, vibrance 18
+  const target = 148; // vivid lifts ~+6, need brighter than 142
+  const bDiff = target - a.avgL;
+  p.brightness = Math.max(-8, Math.min(10, Math.round(bDiff*0.30 + 2)));
+
+  p.contrast = 8; // was 6, vivid 8 gives pop without crunch
+  // lower thresholds: My-Pic 1.8% clipHi should trigger strong recovery like vivid
+  p.highlights = a.clipHiRatio>0.01 ? -18 : (a.clipHiRatio>0.005 ? -12 : -6);
+  p.shadows = a.clipLoRatio>0.015 ? 18 : (a.clipLoRatio>0.008 ? 14 : 10);
+  // warmth: don't over-neutralize warm skin — reduce strength and add +2 warm bias
+  // My-Pic castR +14 warm, old gave -5 cool (wrong), vivid +4 warm (better)
+  const rawWarm = (-a.castR*0.08 + a.castB*0.06);
+  p.warmth = Math.max(-4, Math.min(8, Math.round(rawWarm + 4))); // vivid +4 warm for skin, old -5 was too cool
+  p.vibrance = 18; // vivid 18 won — user preferred, now auto matches vivid
   p.saturation = 0;
   return p;
 }
