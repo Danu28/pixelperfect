@@ -42,6 +42,11 @@ const els = {
   downloadBtn: document.getElementById('downloadBtn'),
   newBtn: document.getElementById('newBtn'),
   workCanvas: document.getElementById('workCanvas'),
+  pipelineStats: document.getElementById('pipelineStats'),
+  statSkin: document.getElementById('statSkin'),
+  statSky: document.getElementById('statSky'),
+  statTime: document.getElementById('statTime'),
+  statMode: document.getElementById('statMode'),
   autoEnhance: document.getElementById('autoEnhance'),
   bright: document.getElementById('bright'),
   contrast: document.getElementById('contrast'),
@@ -174,13 +179,16 @@ function optimize(){
   const {w: TW, h: TH} = p;
   const img = state.img;
   const canvas = els.workCanvas;
+  const t0=performance.now();
   try {
     const prod = window.PixelPerfectProduction;
     const engine = window.PixelPerfectOptimizer;
     const enhOpts = getEnhanceOpts();
+    let segStats=null;
     if(prod && prod.produceHighQuality){
       const res = prod.produceHighQuality(img, TW, TH, canvas, { sharpen: els.sharpen.checked, ...enhOpts, segment: true });
-      if(res && res.stats) console.log('segment stats', res.stats);
+      segStats=res && res.stats;
+      if(segStats) console.log('segment stats', segStats);
     } else if(engine && engine.optimizeToCanvas){
       engine.optimizeToCanvas(img, TW, TH, canvas, { sharpen: els.sharpen.checked, ...enhOpts });
     } else {
@@ -199,12 +207,22 @@ function optimize(){
   const mime = state.outFmt==='png' ? 'image/png' : state.outFmt==='webp' ? 'image/webp' : 'image/jpeg';
   const quality = state.outFmt==='png' ? undefined : state.quality;
 
+  const elapsed=Math.round(performance.now()-t0);
   canvas.toBlob(blob=>{
     if(!blob){ setError('Export failed. Try PNG or another image.'); return; }
     state.outBlob = blob;
     const url = URL.createObjectURL(blob);
     els.outImg.src = url;
-    els.outMeta.textContent = `Optimized · ${TW}×${TH} · ${(blob.size/1024).toFixed(0)} KB · ${state.outFmt.toUpperCase()} · HQ pyramid`;
+    const segInfo = (typeof segStats!== 'undefined' && segStats) ? ` · Skin ${segStats.skinPct}% Sky ${segStats.skyPct}%` : '';
+    els.outMeta.textContent = `Optimized · ${TW}×${TH} · ${(blob.size/1024).toFixed(0)} KB · ${state.outFmt.toUpperCase()} · Pyramid+Segment${segInfo}`;
+    // pipeline stats bar
+    if(els.pipelineStats){
+      els.pipelineStats.classList.remove('hidden');
+      if(els.statSkin) els.statSkin.textContent = (typeof segStats!=='undefined' && segStats) ? segStats.skinPct+'%' : '—';
+      if(els.statSky) els.statSky.textContent = (typeof segStats!=='undefined' && segStats) ? segStats.skyPct+'%' : '—';
+      if(els.statTime) els.statTime.textContent = elapsed+'ms';
+      if(els.statMode) els.statMode.textContent = enhOpts.autoEnhance ? 'Auto' : (Object.keys(enhOpts.enhance||{}).length?'Manual':'HQ');
+    }
     els.emptyState.classList.add('hidden');
     els.previewWrap.classList.remove('hidden');
     els.previewWrap.scrollIntoView({behavior:'smooth', block:'nearest'});

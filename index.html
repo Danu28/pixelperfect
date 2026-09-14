@@ -161,6 +161,28 @@
       </div>
     </section>
 
+    <section class="pipeline">
+      <h4>Raw → HQ Production Pipeline</h4>
+      <p class="muted" style="margin-bottom:12px">Per-segment engine: every pixel gets its own algorithm — skin stays smooth, fabric pops, sky stays clean.</p>
+      <div class="pipeline-diagram">
+        <div class="pipe-step"><span>1</span><strong>Pyramid</strong><em>Halving 1.8×</em></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><span>2</span><strong>Segment</strong><em>Skin/Sky/Texture</em></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><span>3</span><strong>Color</strong><em>Per-segment</em></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><span>4</span><strong>Sharpen</strong><em>Adaptive</em></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step" style="border-color:var(--accent2);background:rgba(124,58,237,.12)"><span>5</span><strong>Export</strong><em>JPEG 92</em></div>
+      </div>
+      <div id="pipelineStats" class="pipeline-stats hidden">
+        <span class="stat"><b id="statSkin">—</b> skin</span>
+        <span class="stat"><b id="statSky">—</b> sky</span>
+        <span class="stat"><b id="statTime">—</b> ms</span>
+        <span class="stat"><b id="statMode">—</b> mode</span>
+      </div>
+    </section>
+
     <section class="specs">
       <h4>Dimensions guide</h4>
       <div class="spec-grid">
